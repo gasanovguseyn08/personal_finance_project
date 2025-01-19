@@ -4,9 +4,9 @@ import java.util.*;
 public class User implements Serializable {
     private final String username;
     private final String password;
-    private final Map<String, Double> income = new HashMap<>();
-    private final Map<String, Double> expenses = new HashMap<>();
-    private final Map<String, Double> budgets = new HashMap<>();
+    private final Map<String, Double> incomes = new HashMap<>();
+    private final Map<String, Double> expenseRecords = new HashMap<>();
+    private final Map<String, Double> budgetLimits = new HashMap<>();
 
     public User(String username, String password) {
         this.username = username;
@@ -21,37 +21,60 @@ public class User implements Serializable {
         return password.equals(inputPassword);
     }
 
-    public void addIncome(String category, double amount) {
-        income.put(category, income.getOrDefault(category, 0.0) + amount);
-    }
-
-    public boolean addExpense(String category, double amount) {
-        double totalIncome = income.values().stream().mapToDouble(Double::doubleValue).sum();
-        double totalExpenses = expenses.values().stream().mapToDouble(Double::doubleValue).sum();
-        if (totalIncome - totalExpenses >= amount) {
-            expenses.put(category, expenses.getOrDefault(category, 0.0) + amount);
-            return true;
+    public void recordIncome(String category, double amount) {
+        if (amount <= 0) {
+            System.out.println("Ошибка: сумма дохода должна быть больше нуля.");
+            return;
         }
-        return false;
+        incomes.put(category, incomes.getOrDefault(category, 0.0) + amount);
     }
 
-    public void setBudget(String category, double budget) {
-        budgets.put(category, budget);
+    public boolean recordExpense(String category, double amount) {
+        if (amount <= 0) {
+            System.out.println("Ошибка: сумма расхода должна быть больше нуля.");
+            return false;
+        }
+
+        double totalIncome = incomes.values().stream().mapToDouble(Double::doubleValue).sum();
+        double totalExpenses = expenseRecords.values().stream().mapToDouble(Double::doubleValue).sum();
+
+        if (totalIncome - totalExpenses >= amount) {
+            expenseRecords.put(category, expenseRecords.getOrDefault(category, 0.0) + amount);
+            return true;
+        } else {
+            System.out.println("Недостаточно средств для этой операции.");
+            return false;
+        }
     }
 
-    public void showStatistics() {
-        System.out.println("\nСтатистика:");
-        double totalIncome = income.values().stream().mapToDouble(Double::doubleValue).sum();
-        double totalExpenses = expenses.values().stream().mapToDouble(Double::doubleValue).sum();
+    public void defineBudget(String category, double budget) {
+        if (budget <= 0) {
+            System.out.println("Ошибка: бюджет должен быть больше нуля.");
+            return;
+        }
+        budgetLimits.put(category, budget);
+    }
+
+    public void displayReport() {
+        System.out.println("\n--- Отчёт пользователя: " + username + " ---");
+        double totalIncome = incomes.values().stream().mapToDouble(Double::doubleValue).sum();
+        double totalExpenses = expenseRecords.values().stream().mapToDouble(Double::doubleValue).sum();
+
         System.out.println("Общий доход: " + totalIncome);
         System.out.println("Общие расходы: " + totalExpenses);
+        System.out.println("Остаток средств: " + (totalIncome - totalExpenses));
 
-        System.out.println("\nБюджет по категориям:");
-        for (String category : budgets.keySet()) {
-            double budget = budgets.get(category);
-            double spent = expenses.getOrDefault(category, 0.0);
-            System.out.printf("Категория: %s, Бюджет: %.2f, Потрачено: %.2f, Остаток: %.2f\n",
-                    category, budget, spent, budget - spent);
+        System.out.println("\nБюджеты по категориям:");
+        for (String category : budgetLimits.keySet()) {
+            double budget = budgetLimits.get(category);
+            double spent = expenseRecords.getOrDefault(category, 0.0);
+            double remaining = budget - spent;
+            double percentageSpent = (spent / budget) * 100;
+
+            System.out.printf("Категория: %s\n", category);
+            System.out.printf("  Бюджет: %.2f\n  Потрачено: %.2f\n  Остаток: %.2f\n  Процент расхода: %.2f%%\n",
+                    budget, spent, remaining, percentageSpent > 100 ? 100 : percentageSpent);
         }
     }
 }
+
